@@ -1,47 +1,31 @@
-NAME=inception
-COMPOSE=docker-compose -f srcs/docker-compose.yml
-UID=$(shell id -u)
-GID=$(shell id -g)
-LOGIN=mhummel  # Ersetze durch deinen Login!
-DATA_DIR=/home/$(LOGIN)/data
+# Inception Makefile - Ohne docker system prune (nur compose-Cleanup)
+COMPOSE_FILE = srcs/docker-compose.yml
 
-.DEFAULT_GOAL := up
-
-all: env dirs up
-
-env:
-	@if [ ! -f srcs/.env ]; then \
-		echo "DOMAIN_NAME=$(LOGIN).42.fr" > srcs/.env; \
-		echo "# Füge hier weitere Vars hinzu (z.B. MYSQL_USER=...)" >> srcs/.env; \
-	fi
-
-dirs:
-	@mkdir -p $(DATA_DIR)/wordpress $(DATA_DIR)/mariadb
+all:
+	docker compose -f $(COMPOSE_FILE) up --build -d
 
 up:
-	@echo "🚀 Starting containers..."
-	@$(COMPOSE) up --build
+	docker compose -f $(COMPOSE_FILE) up -d
 
 down:
-	@echo "🛑 Stopping containers..."
-	@$(COMPOSE) down
+	docker compose -f $(COMPOSE_FILE) down
 
 re: down
-	@echo "🔁 Rebuilding containers..."
-	@$(COMPOSE) up --build
+	$(MAKE) all
 
 clean:
-	@echo "🧹 Removing containers, networks and images..."
-	@$(COMPOSE) down --rmi all
+	docker compose -f $(COMPOSE_FILE) down --rmi all
 
 fclean: clean
-	@echo "🔥 Removing everything including volumes..."
-	@$(COMPOSE) down --rmi all -v
-	@docker system prune --all --force --volumes
-	@rm -rf $(DATA_DIR)
+	docker compose -f $(COMPOSE_FILE) down --rmi all -v
 
+# Hilfs-Targets
 ps:
-	@$(COMPOSE) ps
+	docker ps -a
 
 logs:
-	@$(COMPOSE) logs -f
+	docker logs mariadb --tail 20
+	docker logs wordpress --tail 20
+	docker logs nginx --tail 20
+
+.PHONY: all up down re clean fclean ps logs
