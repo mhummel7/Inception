@@ -38,26 +38,22 @@ if [ ! -f "$WP_PATH/wp-config.php" ]; then
 
     # WordPress installieren + Admin + zweiter User
     wp core install --path=$WP_PATH \
-        --url="$WP_URL" \
-        --title="$WP_TITLE" \
-        --admin_user="$WP_ADMIN_USER" \
-        --admin_password="$WP_ADMIN_PASSWORD" \
-        --admin_email="$WP_ADMIN_EMAIL" \
-        --allow-root
+    --url="$WP_URL" \
+    --title="$WP_TITLE" \
+    --admin_user="$WP_ADMIN_USER" \
+    --admin_password="$(cat /run/secrets/wp_admin_password)" \
+    --admin_email="$WP_ADMIN_EMAIL" \
+    --allow-root
 
     wp user create "$WP_USER" "$WP_USER_EMAIL" \
-        --role=author \
-        --user_pass="$WP_USER_PASSWORD" \
-        --allow-root --path=$WP_PATH
+    --role=author \
+    --user_pass="$(cat /run/secrets/wp_user_password)" \
+    --allow-root --path=$WP_PATH
 
     chown -R www-data:www-data $WP_PATH
 fi
 
 echo "WordPress is ready! Starting PHP-FPM..."
 
-# Am Ende des setup-wp.sh (vor exec)
-echo "Starting PHP-FPM..."
-php-fpm --nodaemonize --force-stderr || (echo "PHP-FPM failed to start!" && exit 1)
-
-# Wichtig: php-fpm statt php-fpm8.1/8.2 → funktioniert immer!
-exec php-fpm --nodaemonize
+# Wichtig: Vollständiger Binary-Name für Debian Bookworm (php-fpm8.2 statt php-fpm)
+exec /usr/sbin/php-fpm8.2 --nodaemonize
