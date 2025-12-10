@@ -1,4 +1,4 @@
-# Inception Makefile - Ohne docker system prune (nur compose-Cleanup)
+
 COMPOSE_FILE = srcs/docker-compose.yml
 
 all:
@@ -18,6 +18,9 @@ clean:
 
 fclean: clean
 	docker compose -f $(COMPOSE_FILE) down --rmi all -v
+	docker system prune -a --force
+	sudo rm -rf /home/mhummel/data/db/*
+	sudo rm -rf /home/mhummel/data/wordpress/*
 
 # Hilfs-Targets
 ps:

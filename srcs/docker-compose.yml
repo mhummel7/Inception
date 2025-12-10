@@ -8,6 +8,9 @@ services:
     networks:
       - inception
     restart: always
+    secrets:
+      - mysql_root_password
+      - mysql_password
 
   wordpress:
     container_name: wordpress
@@ -20,6 +23,9 @@ services:
     depends_on:
       - mariadb
     restart: always
+    secrets:
+      - wp_admin_password
+      - wp_user_password
 
   nginx:
     container_name: nginx
@@ -52,3 +58,14 @@ volumes:
 networks:
   inception:
     driver: bridge
+
+# Hier werden die Secrets definiert
+secrets:
+  mysql_root_password:
+    file: ./secrets/mysql_root_password
+  mysql_password:
+    file: ./secrets/mysql_password
+  wp_admin_password:
+    file: ./secrets/wp_admin_password
+  wp_user_password:
+    file: ./secrets/wp_user_password

@@ -1,59 +1,57 @@
 #!/bin/bash
 set -e
 
-# Warte bis MariaDB erreichbar ist
-echo "Waiting for MariaDB to become available..."
+# Secrets auslesen
+WP_ADMIN_PASSWORD=$(cat /run/secrets/wp_admin_password 2>/dev/null || echo "")
+WP_USER_PASSWORD=$(cat /run/secrets/wp_user_password 2>/dev/null || echo "")
+
+[ -z "$WP_ADMIN_PASSWORD" ] && { echo "wp_admin_password secret missing"; exit 1; }
+[ -z "$WP_USER_PASSWORD" ] && { echo "wp_user_password secret missing"; exit 1; }
+
+echo "Waiting for MariaDB..."
 for i in {1..30}; do
-    if mariadb -h mariadb -P 3306 -u "$MYSQL_USER" -p"$MYSQL_PASSWORD" -e "SELECT 1" &> /dev/null; then
-        echo "MariaDB is up!"
+    if mariadb -h mariadb -P 3306 -u "$MYSQL_USER" -p"$MYSQL_PASSWORD" -e "SELECT 1" &>/dev/null; then
+        echo "MariaDB ready!"
         break
     fi
-    echo "Attempt $i/30: MariaDB not ready yet..."
     sleep 2
 done
-if [ $i -eq 30 ]; then
-    echo "Error: MariaDB not available after 60 seconds!"
-    exit 1
-fi
+[ $i -eq 30 ] && { echo "MariaDB unreachable"; exit 1; }
 
 WP_PATH="/var/www/wordpress"
 
-# wp-cli installieren (falls noch nicht da)
-if [ ! -f /usr/local/bin/wp ]; then
-    echo "Installing wp-cli..."
-    curl -O https://raw.githubusercontent.com/wp-cli/wp-cli/v2.10.0/wp-cli.phar
-    chmod +x wp-cli.phar
-    mv wp-cli.phar /usr/local/bin/wp
-fi
+# wp-cli falls nötig
+[ ! -f /usr/local/bin/wp ] && {
+    curl -o /usr/local/bin/wp https://raw.githubusercontent.com/wp-cli/wp-cli/v2.10.0/wp-cli.phar
+    chmod +x /usr/local/bin/wp
+}
 
 if [ ! -f "$WP_PATH/wp-config.php" ]; then
-    echo "Configuring WordPress for the first time..."
+    echo "First-time WordPress setup..."
 
-    cp $WP_PATH/wp-config-sample.php $WP_PATH/wp-config.php
+    wp config create --dbname="$MYSQL_DATABASE" \
+                     --dbuser="$MYSQL_USER" \
+                     --dbpass="$MYSQL_PASSWORD" \
+                     --dbhost=mariadb \
+                     --path="$WP_PATH" \
+                     --allow-root --force
 
-    sed -i "s/database_name_here/$MYSQL_DATABASE/" $WP_PATH/wp-config.php
-    sed -i "s/username_here/$MYSQL_USER/"         $WP_PATH/wp-config.php
-    sed -i "s/password_here/$MYSQL_PASSWORD/"     $WP_PATH/wp-config.php
-    sed -i "s/localhost/mariadb/"                  $WP_PATH/wp-config.php
-
-    # WordPress installieren + Admin + zweiter User
-    wp core install --path=$WP_PATH \
-    --url="$WP_URL" \
-    --title="$WP_TITLE" \
-    --admin_user="$WP_ADMIN_USER" \
-    --admin_password="$(cat /run/secrets/wp_admin_password)" \
-    --admin_email="$WP_ADMIN_EMAIL" \
-    --allow-root
+    wp core install --url="$WP_URL" \
+                    --title="$WP_TITLE" \
+                    --admin_user="$WP_ADMIN_USER" \
+                    --admin_password="$WP_ADMIN_PASSWORD" \
+                    --admin_email="$WP_ADMIN_EMAIL" \
+                    --path="$WP_PATH" \
+                    --allow-root
 
     wp user create "$WP_USER" "$WP_USER_EMAIL" \
-    --role=author \
-    --user_pass="$(cat /run/secrets/wp_user_password)" \
-    --allow-root --path=$WP_PATH
+                   --role=author \
+                   --user_pass="$WP_USER_PASSWORD" \
+                   --path="$WP_PATH" \
+                   --allow-root
 
-    chown -R www-data:www-data $WP_PATH
+    chown -R www-data:www-data "$WP_PATH"
 fi
 
-echo "WordPress is ready! Starting PHP-FPM..."
-
-# Wichtig: Vollständiger Binary-Name für Debian Bookworm (php-fpm8.2 statt php-fpm)
+echo "Starting PHP-FPM..."
 exec /usr/sbin/php-fpm8.2 --nodaemonize
