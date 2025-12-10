@@ -11,11 +11,11 @@ This document guides developers on setting up, building, and managing the Incept
    - Clone repo: `git clone <repo> && cd inception`.
 
 2. **Configuration Files**:
-   - `.env` in `srcs/`: Fill vars (DOMAIN_NAME=mhummel.42.fr, MYSQL_*, WP_* – generate strong PW if needed).
-   - Secrets: Optional in `secrets/` (e.g., db_password.txt) – ignored in Git.
+   - `.env` in `srcs/`: Fill non-sensitive vars (e.g., DOMAIN_NAME=mhummel.42.fr, MYSQL_DATABASE=wordpress).
+   - Secrets: In `srcs/secrets/` – create files for passwords (e.g., mysql_root_password, wp_admin_password). Never commit (see .gitignore).
    - Hosts: Add "127.0.0.1 mhummel.42.fr" to `/etc/hosts`.
 
-3. **Secrets**: Use .env for dev (env_file in compose). For prod: Docker secrets with file refs.
+3. **Secrets**: Docker secrets are used for all credentials. Files in srcs/secrets/ are mounted via compose.yml and read in scripts (e.g., export MYSQL_PASSWORD=$(cat /run/secrets/mysql_password)). For dev, create with `echo -n "pw" > srcs/secrets/<file>`.
 
 ## Building and Launching
 - **Full Build**: `make all` – Builds images, starts stack.
@@ -31,7 +31,7 @@ This document guides developers on setting up, building, and managing the Incept
 ## Managing Containers and Volumes
 - **Commands**:
   - Inspect: `docker inspect <container>` (e.g., wordpress).
-  - Exec: `docker exec -it mariadb mysql -u root -p` (DB shell).
+  - Exec: `docker exec -it mariadb mysql -u root -p` (DB shell – PW from secrets/mysql_root_password).
   - Volumes: Persistent in `/home/mhummel/data/` (bind mounts). List: `docker volume ls`.
 - **Data Persistence**: DB data in `/home/mhummel/data/db`, WP files in `/home/mhummel/data/wordpress` – survives restarts, but fclean deletes.
 
