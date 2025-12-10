@@ -8,7 +8,7 @@ RUN apt update && apt upgrade -y && \
 RUN openssl req -x509 -nodes -days 365 -newkey rsa:4096 \
     -keyout /etc/ssl/private/nginx.key \
     -out /etc/ssl/certs/nginx.crt \
-    -subj "/C=DE/ST=NRW/L=mhummel/O=mhummel/CN=mhummel.42.fr"
+    -subj "/C=DE/ST=BW/L=Heilbronn/O=42Heilbronn/CN=mhummel.42.fr"
 
 COPY ./conf/nginx.conf /etc/nginx/sites-available/wordpress
 RUN ln -s /etc/nginx/sites-available/wordpress /etc/nginx/sites-enabled/ && \
