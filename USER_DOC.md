@@ -22,9 +22,10 @@ The site is accessible at https://mhummel.42.fr (self-signed cert – accept war
 - **In VM**: Use `curl -k https://mhummel.42.fr` for CLI test (ignores SSL).
 
 ## Managing Credentials
-- Credentials are in `srcs/.env` (never commit – see .gitignore).
-  - Change passwords: Edit .env, then `make re`.
-  - Database: Root PW in .env (MYSQL_ROOT_PASSWORD), WP DB user "mhummel" (MYSQL_USER).
+- Credentials are managed via Docker Secrets in `srcs/secrets/` (e.g., wp_admin_password file).
+  - Change passwords: Edit secret files (e.g., `echo -n "newpw" > srcs/secrets/wp_admin_password`), then `make re`.
+  - Database: Root PW in secrets/mysql_root_password, WP DB user "mhummel" (MYSQL_USER from .env).
+  - Non-sensitive vars (e.g., DOMAIN_NAME) in `srcs/.env` – edit and restart.
 
 ## Checking Services
 - **Logs**: `make logs` – Last 20 lines from each container (mariadb, wordpress, nginx).
