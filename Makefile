@@ -19,10 +19,8 @@ clean:
 fclean: clean
 	docker compose -f $(COMPOSE_FILE) down --rmi all -v
 	docker system prune -a --force
-
-#  Eval: Delete database and wordpress data to check password changes
-# 	sudo rm -rf /home/mhummel/data/db/*
-# 	sudo rm -rf /home/mhummel/data/wordpress/*
+	sudo rm -rf /home/mhummel/data/db/*
+	sudo rm -rf /home/mhummel/data/wordpress/*
 
 # Hilfs-Targets
 ps:
