@@ -1,21 +1,21 @@
 #!/bin/bash
-set -e
+set -e # Exit on error
 
-# Secrets
+# Load secrets
 export MYSQL_PASSWORD=$(cat /run/secrets/mysql_password)
 WP_ADMIN_PASSWORD=$(cat /run/secrets/wp_admin_password)
 WP_USER_PASSWORD=$(cat /run/secrets/wp_user_password)
 
-# Warte auf MariaDB
+# Wait for MariaDB
 until mariadb -h mariadb -u"$MYSQL_USER" -p"$MYSQL_PASSWORD" -e "SELECT 1" &>/dev/null; do sleep 1; done
 
-# wp-cli absolut sicher installieren (offizielle GitHub-Release, immer gültig)
+# Install wp-cli if missing
 command -v wp >/dev/null || {
     wget -qO /usr/local/bin/wp https://github.com/wp-cli/wp-cli/releases/download/v2.11.0/wp-cli-2.11.0.phar
     chmod +x /usr/local/bin/wp
 }
 
-# WordPress einrichten
+# Configure WP if needed
 cd /var/www/wordpress
 
 if [ ! -f wp-config.php ]; then
@@ -25,6 +25,6 @@ if [ ! -f wp-config.php ]; then
     chown -R www-data:www-data .
 fi
 
-# PHP-FPM sauber starten
+# Clean PID, start PHP-FPM
 rm -f /run/php/php8.2-fpm.pid 2>/dev/null
 exec /usr/sbin/php-fpm8.2 --nodaemonize

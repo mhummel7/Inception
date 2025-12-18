@@ -1,54 +1,63 @@
+
+# Services definition
 services:
+# MariaDB service
   mariadb:
-    container_name: mariadb
-    build: requirements/mariadb
-    env_file: .env
+    container_name: mariadb # Container name
+    build: requirements/mariadb # Build from Dockerfile in dir
+    env_file: .env # Load non-sensitive vars
     volumes:
-      - db_data:/var/lib/mysql
+      - db_data:/var/lib/mysql # Persistent DB data
     networks:
-      - inception
-    restart: always
-    secrets:
+      - inception # Custom network
+    restart: always # Auto-restart on fail
+    secrets: # Load secrets
       - mysql_root_password
       - mysql_password
+
+  # WordPress service
 
   wordpress:
     container_name: wordpress
     build: requirements/wordpress
     env_file: .env
     volumes:
-      - wp_files:/var/www/wordpress
+      - wp_files:/var/www/wordpress # Persistent WP files
     networks:
       - inception
     depends_on:
-      - mariadb
+      - mariadb # Start after DB
     restart: always
     secrets:
       - wp_admin_password
       - wp_user_password
       - mysql_password
 
+  # Nginx service
+
   nginx:
     container_name: nginx
     build: requirements/nginx
     env_file: .env
     ports:
-      - "443:443"
+      - "443:443" # Expose HTTPS only
     volumes:
-      - wp_files:/var/www/wordpress
+      - wp_files:/var/www/wordpress # Share WP files
     networks:
       - inception
     depends_on:
-      - wordpress
+      - wordpress # Start after WP
     restart: always
+
+# Volumes definition
 
 volumes:
   db_data:
-    driver: local
+    driver: local # Local driver
     driver_opts:
       type: none
       o: bind
-      device: /home/mhummel/data/db
+      device: /home/mhummel/data/db # Bind host dir
   wp_files:
     driver: local
     driver_opts:
@@ -56,11 +65,13 @@ volumes:
       o: bind
       device: /home/mhummel/data/wordpress
 
+# Networks definition
+
 networks:
   inception:
-    driver: bridge
+    driver: bridge # Custom bridge network
 
-# Hier werden die Secrets definiert
+# Secrets definition
 secrets:
   mysql_root_password:
     file: ./secrets/mysql_root_password

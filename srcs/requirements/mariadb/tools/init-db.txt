@@ -1,7 +1,7 @@
 #!/bin/bash
-set -e
+set -e # Exit on error
 
-# Secrets auslesen
+# load secrets
 if [ -f /run/secrets/mysql_root_password ]; then
     MYSQL_ROOT_PASSWORD=$(cat /run/secrets/mysql_root_password)
 fi
@@ -9,23 +9,25 @@ if [ -f /run/secrets/mysql_password ]; then
     MYSQL_PASSWORD=$(cat /run/secrets/mysql_password)
 fi
 
-# Sicherheit: Abbruch, falls nicht gesetzt
+# safety, exit if not set
 [ -z "$MYSQL_ROOT_PASSWORD" ] && { echo "MYSQL_ROOT_PASSWORD missing"; exit 1; }
 [ -z "$MYSQL_PASSWORD" ] && { echo "MYSQL_PASSWORD missing"; exit 1; }
 
-# Verzeichnisse
+# create directoies
 mkdir -p /var/run/mysqld /var/log/mysql
 chown -R mysql:mysql /var/run/mysqld /var/log/mysql /var/lib/mysql
 chmod 777 /var/run/mysqld
 
-# Nur bei leerem Volume initialisieren
+# Initialize if volume/database is not present
 if [ ! -d "/var/lib/mysql/$MYSQL_DATABASE" ]; then
     echo "Initializing MariaDB..."
     mariadb-install-db --user=mysql --datadir=/var/lib/mysql --skip-test-db >/dev/null
 
+	# start mariadb
     mysqld --user=mysql --skip-networking --socket=/var/run/mysqld/mysqld.sock &
     PID=$!
 
+	# wait for temp server
     for i in {30..1}; do
         if mysql --socket=/var/run/mysqld/mysqld.sock -uroot -e "SELECT 1" &>/dev/null; then
             break
@@ -33,6 +35,7 @@ if [ ! -d "/var/lib/mysql/$MYSQL_DATABASE" ]; then
         sleep 1
     done
 
+	# run initialize sql
     mysql --socket=/var/run/mysqld/mysqld.sock -uroot <<EOF
 FLUSH PRIVILEGES;
 DELETE FROM mysql.user WHERE User='';
@@ -47,6 +50,7 @@ ALTER USER 'root'@'localhost' IDENTIFIED BY '${MYSQL_ROOT_PASSWORD}';
 FLUSH PRIVILEGES;
 EOF
 
+	# stop temp server
     kill $PID
     wait $PID 2>/dev/null || true
 fi
