@@ -5,6 +5,7 @@ services:
   mariadb:
     container_name: mariadb # Container name
     build: requirements/mariadb # Build from Dockerfile in dir
+    image: mariadb # name of the image
     env_file: .env # Load non-sensitive vars
     volumes:
       - db_data:/var/lib/mysql # Persistent DB data
@@ -20,6 +21,7 @@ services:
   wordpress:
     container_name: wordpress
     build: requirements/wordpress
+    image: wordpress
     env_file: .env
     volumes:
       - wp_files:/var/www/wordpress # Persistent WP files
@@ -38,6 +40,7 @@ services:
   nginx:
     container_name: nginx
     build: requirements/nginx
+    image: nginx
     env_file: .env
     ports:
       - "443:443" # Expose HTTPS only
