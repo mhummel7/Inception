@@ -1,26 +1,22 @@
-# base image: penultimate stable (vorletzte stable version)
 FROM debian:bookworm
 
-# update, upgrade and install nginx&openssl and clean cache
+# Installiere nginx, openssl und gettext-base (für envsubst)
 RUN apt update && apt upgrade -y && \
-    apt install -y nginx openssl && \
+    apt install -y nginx openssl gettext-base && \
     rm -rf /var/lib/apt/lists/*
 
-# Generate self-signed cert (TLS 1.2/1.3, 365 days, RSA 4096)
+# Generiere self-signed Zertifikat
 RUN openssl req -x509 -nodes -days 365 -newkey rsa:4096 \
     -keyout /etc/ssl/private/nginx.key \
     -out /etc/ssl/certs/nginx.crt \
     -subj "/C=DE/ST=BW/L=Heilbronn/O=42Heilbronn/CN=mhummel.42.fr"
 
-# Copy Nginx config
-COPY ./conf/nginx.conf /etc/nginx/sites-available/wordpress
+# Kopiere Template und Start-Skript
+COPY conf/nginx.conf.template /etc/nginx/sites-available/wordpress.template
+COPY tools/start-nginx.sh /usr/local/bin/start-nginx.sh
 
-# Link config, remove default
-RUN ln -s /etc/nginx/sites-available/wordpress /etc/nginx/sites-enabled/ && \
-    rm /etc/nginx/sites-enabled/default
+# Mach Skript ausführbar
+RUN chmod +x /usr/local/bin/start-nginx.sh
 
-# Document internal port
-EXPOSE 443
-
-# Nginx als PID 1 starten
-CMD ["nginx", "-g", "daemon off;"]
+# Starte über unser Skript
+CMD ["/usr/local/bin/start-nginx.sh"]

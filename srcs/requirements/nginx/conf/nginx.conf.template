@@ -1,33 +1,27 @@
-# Server block for HTTPS only
 server {
-    listen 443 ssl; # Listen on IPv4
-    listen [::]:443 ssl; # Listen on IPv6
+    listen ${NGINX_INTERNAL_PORT} ssl;
+    listen [::]:${NGINX_INTERNAL_PORT} ssl;
 
-    server_name mhummel.42.fr; # Domain name
+    server_name mhummel.42.fr;
 
-	# SSL config (self-signed cert, TLS versions)
     ssl_certificate     /etc/ssl/certs/nginx.crt;
     ssl_certificate_key /etc/ssl/private/nginx.key;
     ssl_protocols       TLSv1.2 TLSv1.3;
 
-	# Root directory and index files
     root /var/www/wordpress;
     index index.php index.html index.htm;
 
-	# Static files and fallback to index.php
     location / {
         try_files $uri $uri/ /index.php?$args;
     }
 
-	# PHP handler (FastCGI to WordPress container)
     location ~ \.php$ {
         include fastcgi_params;
-        fastcgi_pass wordpress:9000;
+        fastcgi_pass wordpress:${WP_FPM_PORT};
         fastcgi_index index.php;
         fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
     }
 
-    # Security headers
     add_header X-Frame-Options "SAMEORIGIN" always;
     add_header X-Content-Type-Options "nosniff" always;
 }

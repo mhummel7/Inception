@@ -1,18 +1,20 @@
-
 # Services definition
 services:
 # MariaDB service
   mariadb:
-    container_name: mariadb # Container name
-    build: requirements/mariadb # Build from Dockerfile in dir
-    image: mariadb # name of the image
-    env_file: .env # Load non-sensitive vars
+    container_name: mariadb
+    build: 
+      context: requirements/mariadb
+      args:
+        MYSQL_PORT: ${MYSQL_PORT:-3306}   # nimmt Wert aus .env oder Default 3306
+    image: mariadb
+    env_file: .env
     volumes:
-      - db_data:/var/lib/mysql # Persistent DB data
+      - db_data:/var/lib/mysql
     networks:
-      - inception # Custom network
-    restart: always # Auto-restart on fail
-    secrets: # Load secrets
+      - inception
+    restart: always
+    secrets:
       - mysql_root_password
       - mysql_password
 
@@ -20,15 +22,18 @@ services:
 
   wordpress:
     container_name: wordpress
-    build: requirements/wordpress
+    build: 
+      context: requirements/wordpress
+      args:
+        WP_FPM_PORT: ${WP_FPM_PORT:-9000}   # nimmt Wert aus .env oder Default 9000
     image: wordpress
     env_file: .env
     volumes:
-      - wp_files:/var/www/wordpress # Persistent WP files
+      - wp_files:/var/www/wordpress
     networks:
       - inception
     depends_on:
-      - mariadb # Start after DB
+      - mariadb
     restart: always
     secrets:
       - wp_admin_password
@@ -43,13 +48,13 @@ services:
     image: nginx
     env_file: .env
     ports:
-      - "443:443" # Expose HTTPS only
+      - "${NGINX_PORT:-443}:${NGINX_INTERNAL_PORT:-443}"
     volumes:
-      - wp_files:/var/www/wordpress # Share WP files
+      - wp_files:/var/www/wordpress
     networks:
       - inception
     depends_on:
-      - wordpress # Start after WP
+      - wordpress
     restart: always
 
 # Volumes definition
