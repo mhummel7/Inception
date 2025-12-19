@@ -12,10 +12,7 @@ ARG WP_FPM_PORT=9000
 # Dokumentiere den Port dynamisch (wird in docker ps angezeigt)
 EXPOSE $WP_FPM_PORT
 
-# Configure PHP-FPM pool – wir entfernen das harte sed, 
-# weil wir den Port jetzt zur Laufzeit in setup-wp.sh setzen
-# (flexibler – kein Rebuild nötig bei Port-Änderung)
-# Aber: clear_env=no bleibt sinnvoll
+# Configure PHP-FPM pool 
 RUN sed -i "s|;clear_env =.*|clear_env = no|g" /etc/php/*/fpm/pool.d/www.conf && \
     sed -i "s|;listen.owner =.*|listen.owner = www-data|g" /etc/php/*/fpm/pool.d/www.conf && \
     sed -i "s|;listen.group =.*|listen.group = www-data|g" /etc/php/*/fpm/pool.d/www.conf && \
